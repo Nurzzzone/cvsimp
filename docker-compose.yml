@@ -1,0 +1,65 @@
+version: '3'
+
+services:
+  app: 
+    container_name: csvimp-app
+    build: 
+      context: .docker/php
+      dockerfile: Dockerfile
+    working_dir: /app
+    volumes:
+      - .:/app
+      - .docker/php/php.ini:/usr/local/etc/php/conf.d/php.ini
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  queue:
+    container_name: csvimp-queue
+    image: php:8-fpm-alpine
+    build:
+      context: .docker/php
+      dockerfile: Dockerfile
+    working_dir: /app
+    command: php artisan queue:work
+    volumes:
+      - .:/app
+    depends_on:
+      - app
+      - db
+    networks:
+      - app-network
+
+  db:
+    container_name: csvimp-db
+    image: mariadb:10.9.4
+    environment:
+      MARIADB_DATABASE: ${DB_DATABASE:-csvimp}
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+    networks:
+      - app-network
+
+  db_test:
+    container_name: csvimp-db-test
+    image: mariadb:10.9.4
+    environment:
+      MARIADB_DATABASE: ${DB_DATABASE:-csvimp}
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+    networks:
+      - app-network
+
+  webserver:
+    container_name: csvimp-webserver
+    image: nginx:alpine
+    ports:
+      - "${WEBSERVER_PORT:-8080}:80"
+    volumes:
+      - .docker/nginx/conf.d:/etc/nginx/conf.d
+      - .:/app
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
