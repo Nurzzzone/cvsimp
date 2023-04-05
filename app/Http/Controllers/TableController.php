@@ -23,13 +23,16 @@ class TableController extends Controller
             ->when(isset($request['gender']), fn($q) => 
                 $q->where('gender', 'like', "{$request['gender']}")
             )
+            ->when(isset($request['birthdate']), fn($q) => 
+                $q->whereDate('birthdate', Carbon::createFromFormat('Y-m-d', $request['birthdate']))
+            )
             ->when(isset($request['age']), fn($q) => 
                 $q->where('birthdate', '>=', now()->subYears($request['age']))
             )
             ->when(isset($request['age_range']), function ($q) use ($request) { 
                 $range = explode(',', $request['age_range']);
 
-                $q->whereBetween('birthdate', $range[0], $range[1]);
+                $q->whereBetween('birthdate', [now()->subYears($range[1]), now()->subYears($range[0])]);
             })
             ->paginate();
 
